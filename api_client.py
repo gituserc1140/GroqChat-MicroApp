@@ -5,7 +5,14 @@ function that the Streamlit app calls for every user message.
 """
 
 from typing import List, Dict
-from groq import Groq, AuthenticationError, APIConnectionError, RateLimitError
+from groq import (
+    Groq,
+    AuthenticationError,
+    APIConnectionError,
+    BadRequestError,
+    NotFoundError,
+    RateLimitError,
+)
 
 
 def chat_completion(
@@ -53,6 +60,15 @@ def chat_completion(
     except RateLimitError as exc:
         raise RuntimeError(
             "Rate limit reached. Please wait a moment and try again."
+        ) from exc
+    except BadRequestError as exc:
+        raise RuntimeError(
+            f"Bad request — this may be caused by an invalid model name or malformed "
+            f"message content: {exc}"
+        ) from exc
+    except NotFoundError as exc:
+        raise RuntimeError(
+            f"Model not found. Please select a valid model from the sidebar: {exc}"
         ) from exc
     except APIConnectionError as exc:
         raise RuntimeError(
