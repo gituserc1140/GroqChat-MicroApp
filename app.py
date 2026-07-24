@@ -28,13 +28,12 @@ with st.sidebar:
         help="Get a free key at https://console.groq.com/keys",
     )
 
-    model = st.selectbox(
-        "Model",
-        options=settings.AVAILABLE_MODELS,
-        index=settings.AVAILABLE_MODELS.index(settings.DEFAULT_MODEL)
+    default_model_index = (
+        settings.AVAILABLE_MODELS.index(settings.DEFAULT_MODEL)
         if settings.DEFAULT_MODEL in settings.AVAILABLE_MODELS
-        else 0,
+        else 0
     )
+    model = st.selectbox("Model", options=settings.AVAILABLE_MODELS, index=default_model_index)
 
     if st.button("🗑️ Clear conversation"):
         st.session_state.messages = []

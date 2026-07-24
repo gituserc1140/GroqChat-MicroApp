@@ -40,7 +40,12 @@ def chat_completion(
             messages=messages,
             model=model,
         )
-        return response.choices[0].message.content
+        if not response.choices:
+            raise RuntimeError("Groq API returned an empty response (no choices).")
+        content = response.choices[0].message.content
+        if content is None:
+            raise RuntimeError("Groq API returned a message with no content.")
+        return content
     except AuthenticationError as exc:
         raise RuntimeError(
             "Invalid API key. Please check your key at https://console.groq.com/keys"
