@@ -1,61 +1,51 @@
-# Micro-app template
+# GroqChat
+AI chat micro-app powered by the Groq API
 
-This repository is a minimal, generic micro-app template built with Streamlit.
-It preserves a simple architecture intended to be easy to adapt for any
-API-driven micro-application.
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://groqchat.streamlit.app/)
+[![Sponsor me on GitHub](https://img.shields.io/badge/Sponsor%20me%20on-GitHub-EA4AAA?logo=githubsponsors&style=flat-square)](https://github.com/sponsors/gituserc1140)
 
-Contents
-- app.py — Streamlit entrypoint that gathers minimal user inputs and calls api_client.fetch_data()
-- api_client.py — API client module with a `make_request()` helper and a minimal `fetch_data()` example
-- ui.py — UI layout module that renders data using Streamlit
-- config/ — configuration module with placeholder settings
-- requirements.txt — minimal dependencies
+## About
 
-Quick start
-1. Install dependencies
-   pip install -r requirements.txt
+A lightweight Streamlit chat app that connects directly to the [Groq](https://console.groq.com/home) inference API — one of the fastest large-language-model backends available. Enter your Groq API key in the sidebar, choose a model, and start chatting instantly. Conversation history is preserved for the lifetime of your browser session, and a single click clears it when you want a fresh start.
 
-2. Run locally
-   streamlit run app.py
+## API key setup
 
-Using the template
-- The primary integration point is api_client.fetch_data(). Replace the placeholder
-  implementation with calls to your API, including authentication, pagination,
-  and error handling. Keep fetch_data() independent of Streamlit so it remains
-  testable and reusable.
+You can provide your `GROQ_API_KEY` in any of these ways:
 
-- config/settings.py contains default values for API_BASE_URL and API_KEY. You
-  can set these using environment variables or provide values at runtime via
-  the Streamlit app input fields.
+- Enter it in the Streamlit sidebar input field at runtime
+- Add it to `.streamlit/secrets.toml`:
+  ```
+  GROQ_API_KEY = "gsk_..."
+  ```
+- Set it as an environment variable:
+  ```
+  GROQ_API_KEY=gsk_...
+  ```
 
-- ui.py contains simple rendering logic with Streamlit. Modify or replace it to
-  match your UI needs (components, layout, charts, etc.).
+## Model selection
 
-How to plug in a new API
-1. Update config/settings.py or set environment variables:
-   - API_BASE_URL: base URL for your API
-   - API_KEY: optional API key (alternatively, prompt users for the key in the UI)
+Use the sidebar model selector to switch between available Groq-hosted models:
 
-2. Implement the API calls in api_client.fetch_data() (or add helper functions):
-   - Use the make_request() helper for consistent URL building and timeouts
-   - Add authentication (bearer tokens, API keys, custom headers) as needed
-   - Parse and return a plain Python dict with a shape the UI expects
+- **llama3-8b-8192** — fast and efficient for everyday tasks (default)
+- **llama3-70b-8192** — higher quality responses for complex reasoning
+- **llama-3.1-8b-instant** — ultra-low latency
+- **llama-3.3-70b-versatile** — best overall quality
+- **mixtral-8x7b-32768** — long-context tasks (32 k token window)
+- **gemma2-9b-it** — Google's Gemma 2 instruction-tuned model
 
-3. Adjust the UI (ui.py) and app behavior (app.py) to pass parameters and show
-   the results in a user-friendly way.
+## Quick start
 
-Extending the template
-- Add tests for api_client.fetch_data() and UI rendering logic.
-- Add a Dockerfile or GitHub Actions workflow for CI and deployment.
-- Replace the placeholder items with richer domain models and components.
+```bash
+pip install -r requirements.txt
+streamlit run app.py
+```
 
-License
-Add a LICENSE file appropriate for your project.
+## Repository structure
 
-Example Prompt 
-
--lets refactor this repo & streamlit app to work with "api and documentation link" so the end user can insert an api key on the front end and interact with the app.
-
-Example Prompt 2
-
--Lets use this app repo "Insert App Repo link" as a reference for the streamlit UI design and repo UI design & description but dont copy the architecture.
+| File / folder | Purpose |
+|---|---|
+| `app.py` | Streamlit entry-point — layout, session state, chat loop |
+| `api_client.py` | Groq SDK wrapper; single `chat_completion()` function |
+| `ui.py` | Rendering helpers (hero empty state, chat history) |
+| `config/settings.py` | Model list, default model, env-var config |
+| `requirements.txt` | Minimal Python dependencies |
