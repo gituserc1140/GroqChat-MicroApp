@@ -1,77 +1,55 @@
-"""API client module for external API calls.
+"""Groq API client module.
 
-This module provides a small request wrapper `make_request()` and a minimal
-`fetch_data()` function that returns placeholder data. Replace or extend
-`fetch_data()` with real API logic, authentication, and parsing for your API.
+Wraps the official `groq` Python SDK to provide a single `chat_completion()`
+function that the Streamlit app calls for every user message.
 """
 
-import os
-import requests
-from typing import Any, Dict, Optional
-from config import settings
+from typing import List, Dict
+from groq import Groq, AuthenticationError, APIConnectionError, RateLimitError
 
 
-def make_request(path: str, params: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None, method: str = "GET", timeout: Optional[int] = None) -> Any:
-    """Simple HTTP request helper.
+def chat_completion(
+    messages: List[Dict[str, str]],
+    model: str,
+    api_key: str,
+) -> str:
+    """Send a list of chat messages to the Groq API and return the reply text.
 
-    - Builds a URL from settings.API_BASE_URL and path
-    - Uses requests.request and returns parsed JSON
-    - Raises on HTTP errors
+    Args:
+        messages: Conversation history in OpenAI-compatible format, e.g.
+                  [{"role": "user", "content": "Hello"}]
+        model:    Groq model identifier, e.g. "llama3-8b-8192".
+        api_key:  Groq API key obtained from https://console.groq.com/keys.
+
+    Returns:
+        The assistant reply string.
+
+    Raises:
+        ValueError: If the API key is missing or clearly invalid.
+        RuntimeError: On authentication, rate-limit, or connection errors.
     """
-    base = settings.API_BASE_URL.rstrip("/")
-    url = f"{base}/{path.lstrip('/')}"
-    timeout = timeout or settings.DEFAULT_TIMEOUT
-    headers = headers or {}
+    if not api_key or not api_key.strip():
+        raise ValueError(
+            "A Groq API key is required. Get one at https://console.groq.com/keys"
+        )
 
-    resp = requests.request(method, url, params=params, headers=headers, timeout=timeout)
-    resp.raise_for_status()
-
-    # Attempt to parse JSON, fall back to raw text
-    try:
-        return resp.json()
-    except ValueError:
-        return resp.text
-
-
-def fetch_data(params: Optional[Dict[str, Any]] = None, api_key: Optional[str] = None) -> Dict[str, Any]:
-    """Minimal example function that returns placeholder data or forwards a real request.
-
-    Replace this implementation with your API-specific calls. Keep the function
-    signature as a single integration point for the UI.
-
-    Behavior:
-    - If the configured API_BASE_URL is the default example domain, returns a
-      small static example payload so the UI shows content without a real API.
-    - Otherwise, attempts to call the API (path 'data' by default) and returns
-      the parsed result, or an error payload on failure.
-    """
-    params = params or {}
-
-    # if still pointing at the example placeholder base, return fake data
-    if (not settings.API_BASE_URL) or ("example.com" in settings.API_BASE_URL):
-        return {
-            "title": "Micro-app sample",
-            "description": "Replace api_client.fetch_data() with calls to your API",
-            "items": [
-                {"id": 1, "name": "Example item A", "value": 100},
-                {"id": 2, "name": "Example item B", "value": 200},
-            ],
-        }
-
-    # attempt a real API call to the generic 'data' path. Adapt path as needed.
-    headers = {}
-    if api_key:
-        # common pattern: send key as Authorization header; adjust per API
-        headers["Authorization"] = f"Bearer {api_key}"
-    elif settings.API_KEY:
-        headers["Authorization"] = f"Bearer {settings.API_KEY}"
+    client = Groq(api_key=api_key.strip())
 
     try:
-        result = make_request(path="data", params=params, headers=headers)
-        # ensure we return a dict the UI can consume; adapt parsing here
-        if isinstance(result, dict):
-            return result
-        else:
-            return {"title": "API result", "description": "Non-JSON response", "items": [{"id": 1, "name": str(result), "value": 0}]}
-    except Exception as exc:
-        return {"title": "Error", "description": str(exc), "items": []}
+        response = client.chat.completions.create(
+            messages=messages,
+            model=model,
+        )
+        return response.choices[0].message.content
+    except AuthenticationError as exc:
+        raise RuntimeError(
+            "Invalid API key. Please check your key at https://console.groq.com/keys"
+        ) from exc
+    except RateLimitError as exc:
+        raise RuntimeError(
+            "Rate limit reached. Please wait a moment and try again."
+        ) from exc
+    except APIConnectionError as exc:
+        raise RuntimeError(
+            f"Could not connect to the Groq API: {exc}"
+        ) from exc

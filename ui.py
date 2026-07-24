@@ -1,43 +1,23 @@
-"""UI layout module for Streamlit.
+"""UI helpers for the GroqChat Streamlit app.
 
-This keeps UI code separate from the API client and the main app control flow.
-It uses Streamlit primitives to render a simple, easy-to-adapt layout.
+Keeps all rendering logic in one place so that app.py stays focused on
+control flow and state management.
 """
 
 import streamlit as st
-from typing import Dict, Any
+from typing import List, Dict
 
 
-def render_home(data: Dict[str, Any]):
-    """Render the main page given a simple data dictionary.
+def render_chat(messages: List[Dict[str, str]]) -> None:
+    """Render the full conversation history.
 
-    Expected shape (example):
-      {
-        "title": str,
-        "description": str,
-        "items": [{"id":..., "name":..., "value":...}, ...]
-      }
-
-    Adapt the rendering to your needs or replace entirely with custom
-    components or a separate front-end.
+    Args:
+        messages: List of message dicts with "role" and "content" keys,
+                  following the OpenAI-compatible format used by Groq.
+                  Roles are "user" or "assistant".
     """
-    title = data.get("title", "Micro-app")
-    description = data.get("description", "")
-    items = data.get("items", [])
-
-    st.subheader(title)
-    if description:
-        st.write(description)
-
-    if not items:
-        st.info("No items to display. Implement api_client.fetch_data() to return real data.")
-        return
-
-    # display items in columns for a compact layout
-    cols = st.columns(min(3, max(1, len(items))))
-    for idx, item in enumerate(items):
-        with cols[idx % len(cols)]:
-            st.card = None
-            st.markdown(f"**{item.get('name')}**")
-            st.write(f"ID: {item.get('id')}")
-            st.write(f"Value: {item.get('value')}")
+    for message in messages:
+        role = message.get("role", "user")
+        content = message.get("content", "")
+        with st.chat_message(role):
+            st.markdown(content)

@@ -1,9 +1,8 @@
-"""Streamlit-based micro-app entrypoint.
+"""GroqChat – Streamlit front-end.
 
-This lightweight app preserves the original repository architecture but removes
-any Weather-specific logic. It demonstrates how to gather minimal inputs from
-an end user (optional API base URL and API key) and calls api_client.fetch_data()
-as an integration point. The UI is rendered via ui.render_home().
+Users supply their own Groq API key (https://console.groq.com/keys) via the
+sidebar, pick a model, and chat directly in the browser.  Conversation history
+is kept in st.session_state for the lifetime of the browser session.
 
 Run locally:
   pip install -r requirements.txt
@@ -15,36 +14,72 @@ from config import settings
 import api_client
 import ui
 
-st.set_page_config(page_title="Micro-app", layout="centered")
+st.set_page_config(page_title="GroqChat", page_icon="💬", layout="centered")
 
-st.header("Micro-app Template")
-st.write("A lightweight template for building small API-driven micro-apps using Streamlit.")
+# ── Sidebar ──────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.title("⚙️ Settings")
 
-# allow overriding API base and API key for quick testing; they default to config values
-api_base = st.text_input("API base URL", value=settings.API_BASE_URL or "")
-api_key = st.text_input("API key (optional)", value="", type="password")
+    api_key = st.text_input(
+        "Groq API key",
+        value=settings.GROQ_API_KEY,
+        type="password",
+        placeholder="gsk_...",
+        help="Get a free key at https://console.groq.com/keys",
+    )
 
-params_input = st.text_area("Parameters (JSON)", value='{}', help="Optional JSON to pass to fetch_data as params")
+    model = st.selectbox(
+        "Model",
+        options=settings.AVAILABLE_MODELS,
+        index=settings.AVAILABLE_MODELS.index(settings.DEFAULT_MODEL)
+        if settings.DEFAULT_MODEL in settings.AVAILABLE_MODELS
+        else 0,
+    )
 
-if st.button("Fetch data"):
-    # parse params safely
-    import json
+    if st.button("🗑️ Clear conversation"):
+        st.session_state.messages = []
+        st.rerun()
 
-    try:
-        params = json.loads(params_input or "{}")
-    except Exception as exc:
-        st.error(f"Could not parse parameters as JSON: {exc}")
-        params = {}
+    st.markdown("---")
+    st.markdown(
+        "Get a free API key at [console.groq.com/keys](https://console.groq.com/keys)"
+    )
 
-    # Temporary override of settings for this run (non-persistent)
-    if api_base:
-        settings.API_BASE_URL = api_base
-    if api_key:
-        # pass explicit api_key to fetch_data (preferred) and do not modify global settings
-        data = api_client.fetch_data(params=params, api_key=api_key)
+# ── Session state ─────────────────────────────────────────────────────────────
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# ── Main chat area ────────────────────────────────────────────────────────────
+st.title("💬 GroqChat")
+
+ui.render_chat(st.session_state.messages)
+
+user_input = st.chat_input("Type your message…")
+
+if user_input:
+    if not api_key:
+        st.warning("Please enter your Groq API key in the sidebar to start chatting.")
     else:
-        data = api_client.fetch_data(params=params)
+        # Append the user message and immediately show it
+        st.session_state.messages.append({"role": "user", "content": user_input})
 
-    ui.render_home(data)
-else:
-    st.info("Enter an API base URL or use the default configured in config/settings.py, provide any parameters, then click Fetch data.")
+        with st.chat_message("user"):
+            st.markdown(user_input)
+
+        # Call the Groq API and stream the response
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking…"):
+                try:
+                    reply = api_client.chat_completion(
+                        messages=st.session_state.messages,
+                        model=model,
+                        api_key=api_key,
+                    )
+                    st.markdown(reply)
+                    st.session_state.messages.append(
+                        {"role": "assistant", "content": reply}
+                    )
+                except (ValueError, RuntimeError) as exc:
+                    st.error(str(exc))
+                    # Remove the user message we just added so the history stays clean
+                    st.session_state.messages.pop()
