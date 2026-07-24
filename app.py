@@ -59,13 +59,16 @@ if user_input:
     if not api_key:
         st.warning("Please enter your Groq API key in the sidebar to start chatting.")
     else:
+        # Snapshot the message count before appending so we can roll back cleanly on error
+        snapshot_len = len(st.session_state.messages)
+
         # Append the user message and immediately show it
         st.session_state.messages.append({"role": "user", "content": user_input})
 
         with st.chat_message("user"):
             st.markdown(user_input)
 
-        # Call the Groq API and stream the response
+        # Call the Groq API and display the response
         with st.chat_message("assistant"):
             with st.spinner("Thinking…"):
                 try:
@@ -80,5 +83,6 @@ if user_input:
                     )
                 except (ValueError, RuntimeError) as exc:
                     st.error(str(exc))
-                    # Remove the user message we just added so the history stays clean
-                    st.session_state.messages.pop()
+                    # Restore history to the pre-append snapshot so no partial
+                    # messages are left behind regardless of what was added above
+                    st.session_state.messages = st.session_state.messages[:snapshot_len]
