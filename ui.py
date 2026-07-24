@@ -4,14 +4,8 @@ Keeps all rendering logic in one place so that app.py stays focused on
 control flow and state management.
 """
 
-import html
 import streamlit as st
 from typing import List, Dict
-
-_ROLE_LABEL = {
-    "user": "You",
-    "assistant": "Groq",
-}
 
 _ROLE_ICON = {
     "user": "🧑",
